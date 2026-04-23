@@ -5,6 +5,16 @@
 
 export type Category = 'Electronics' | 'Books' | 'Clothing' | 'Furniture' | 'Stationery' | 'Other';
 
+export interface Review {
+  id: string;
+  reviewerId: string;
+  reviewerName: string;
+  sellerId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -17,6 +27,7 @@ export interface User {
   cart: string[]; // item IDs
   orderHistory: string[]; // item IDs
   phoneNumber?: string;
+  reviews?: Review[];
 }
 
 export interface Item {

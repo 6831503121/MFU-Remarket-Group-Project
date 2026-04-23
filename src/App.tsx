@@ -129,6 +129,7 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -375,6 +376,24 @@ export default function App() {
     setChats(chats.map(c => c.id === selectedChatId ? { ...c, lastMessage: text, updatedAt: new Date().toISOString() } : c));
   };
 
+  const handleAddReview = (sellerId: string, rating: number, comment: string) => {
+    if (!currentUser) return;
+    
+    const review: Review = {
+      id: `r${Date.now()}`,
+      reviewerId: currentUser.id,
+      reviewerName: currentUser.name,
+      sellerId,
+      rating,
+      comment: sanitizeInput(comment),
+      createdAt: new Date().toISOString(),
+    };
+
+    setReviews([review, ...reviews]);
+    setUsers(users.map(u => u.id === sellerId ? { ...u, reviews: [review, ...(u.reviews || [])] } : u));
+    alert('Review submitted successfully!');
+  };
+
   // --- Filtered Items ---
 
   const filteredItems = useMemo(() => {
@@ -423,6 +442,7 @@ export default function App() {
             onSelectItem={(id: string) => { setSelectedItemId(id); setPage('details'); }}
             currentUser={currentUser}
             onToggleWishlist={handleToggleWishlist}
+            onAddToCart={handleAddToCart}
           />
         );
       case 'details':
@@ -480,6 +500,7 @@ export default function App() {
               setUsers(users.map(u => u.id === updated.id ? updated : u)); 
             }}
             onSelectItem={(id: string) => { setSelectedItemId(id); setPage('details'); }}
+            onAddReview={handleAddReview}
           />
         );
       case 'wishlist':
@@ -779,12 +800,23 @@ const HomeScreen = ({
                     <span className="bg-white text-black px-3 py-1 rounded-lg font-bold text-xs uppercase tracking-wider">Sold</span>
                   </div>
                 )}
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onToggleWishlist(item.id); }}
-                  className={`absolute top-2 right-2 p-2 rounded-full shadow-sm transition-all ${currentUser?.wishlist.includes(item.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-600 hover:bg-white'}`}
-                >
-                  <Heart size={16} fill={currentUser?.wishlist.includes(item.id) ? 'currentColor' : 'none'} />
-                </button>
+                
+                <div className="absolute top-2 right-2 flex flex-col gap-2">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onToggleWishlist(item.id); }}
+                    className={`p-2 rounded-full shadow-sm transition-all ${currentUser?.wishlist.includes(item.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-600 hover:bg-white'}`}
+                  >
+                    <Heart size={16} fill={currentUser?.wishlist.includes(item.id) ? 'currentColor' : 'none'} />
+                  </button>
+                  
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onAddToCart(item.id); }}
+                    className={`p-2 rounded-full shadow-sm transition-all ${currentUser?.cart.includes(item.id) ? 'bg-red-600 text-white' : 'bg-white/80 text-gray-600 hover:bg-white'}`}
+                    disabled={item.status === 'sold' || item.stock === 0}
+                  >
+                    <ShoppingCart size={16} />
+                  </button>
+                </div>
               </div>
               <div className="p-3">
                 <div className="flex justify-between items-start mb-1">
@@ -1206,15 +1238,31 @@ const ChatViewScreen = ({ chat, item, messages, currentUser, otherUser, onSendMe
   );
 };
 
-const ProfileScreen = ({ user, items, boughtItems, onUpdateUser, onSelectItem }: any) => {
+const ProfileScreen = ({ user, items, boughtItems, onUpdateUser, onSelectItem, onAddReview }: any) => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user.name);
   const [faculty, setFaculty] = useState(user.faculty);
   const [phoneNumber, setPhoneNumber] = useState(user.phoneNumber || '');
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [selectedSellerId, setSelectedSellerId] = useState('');
 
   const handleSave = () => {
     onUpdateUser({ ...user, name, faculty, phoneNumber });
     setIsEditing(false);
+  };
+
+  const openReviewModal = (sellerId: string) => {
+    setSelectedSellerId(sellerId);
+    setRating(5);
+    setComment('');
+    setShowReviewModal(true);
+  };
+
+  const submitReview = () => {
+    onAddReview(selectedSellerId, rating, comment);
+    setShowReviewModal(false);
   };
 
   return (
@@ -1273,6 +1321,14 @@ const ProfileScreen = ({ user, items, boughtItems, onUpdateUser, onSelectItem }:
           <>
             <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
             <p className="text-gray-500 font-medium">{user.faculty}</p>
+            <div className="flex items-center gap-1 mt-1">
+              <div className="flex items-center text-yellow-400">
+                {[...Array(5)].map((_, i) => (
+                  <Heart key={i} size={12} fill={i < Math.round((user.reviews?.reduce((s:any, r:any) => s + r.rating, 0) || 0) / (user.reviews?.length || 1)) ? 'currentColor' : 'none'} />
+                ))}
+              </div>
+              <p className="text-xs text-gray-400">({user.reviews?.length || 0} reviews)</p>
+            </div>
             <p className="text-xs text-gray-400 mt-1">ID: {user.studentId} • {user.email}</p>
             <p className="text-xs text-gray-400 mt-1">Phone: {user.phoneNumber || 'Not set'}</p>
             <button 
@@ -1286,24 +1342,57 @@ const ProfileScreen = ({ user, items, boughtItems, onUpdateUser, onSelectItem }:
       </div>
 
       <div className="space-y-4">
+        <h2 className="text-xl font-bold text-gray-900">Seller Reviews</h2>
+        {user.reviews && user.reviews.length > 0 ? (
+          <div className="space-y-3">
+            {user.reviews.map((review: any) => (
+              <div key={review.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="font-bold text-sm text-gray-900">{review.reviewerName}</p>
+                  <div className="flex text-yellow-400">
+                    {[...Array(5)].map((_, i) => (
+                      <Heart key={i} size={10} fill={i < review.rating ? 'currentColor' : 'none'} />
+                    ))}
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">{review.comment}</p>
+                <p className="text-[10px] text-gray-400 mt-2">{new Date(review.createdAt).toLocaleDateString()}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white p-8 rounded-3xl border border-dashed border-gray-200 text-center text-gray-400">
+            <p>No reviews yet.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-4">
         <h2 className="text-xl font-bold text-gray-900">Order History</h2>
         {boughtItems && boughtItems.length > 0 ? (
           <div className="space-y-3">
             {boughtItems.map((item: Item) => (
               <div 
                 key={item.id}
-                onClick={() => onSelectItem(item.id)}
-                className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 cursor-pointer hover:border-red-200 transition-all"
+                className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 hover:border-red-200 transition-all group"
               >
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                <div onClick={() => onSelectItem(item.id)} className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 shrink-0 cursor-pointer">
                   <img src={item.images[0]} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div onClick={() => onSelectItem(item.id)} className="flex-1 min-w-0 cursor-pointer">
                   <h3 className="font-bold text-gray-900 truncate text-sm">{item.title}</h3>
                   <p className="text-red-600 font-bold text-sm">{formatPrice(item.price)}</p>
                 </div>
-                <div className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
-                  Bought
+                <div className="flex flex-col gap-2">
+                  <div className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase text-center">
+                    Bought
+                  </div>
+                  <button 
+                    onClick={() => openReviewModal(item.sellerId)}
+                    className="text-[10px] font-bold text-red-600 hover:underline"
+                  >
+                    Rate Seller
+                  </button>
                 </div>
               </div>
             ))}
@@ -1314,6 +1403,57 @@ const ProfileScreen = ({ user, items, boughtItems, onUpdateUser, onSelectItem }:
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {showReviewModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl"
+            >
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">Rate Seller</h2>
+              <p className="text-gray-500 mb-6 text-center text-sm">How was your experience with this seller?</p>
+              
+              <div className="flex justify-center gap-2 mb-8 text-yellow-400">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button key={star} onClick={() => setRating(star)}>
+                    <Heart size={32} fill={star <= rating ? 'currentColor' : 'none'} />
+                  </button>
+                ))}
+              </div>
+
+              <textarea 
+                className="w-full p-4 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-red-500 mb-6 text-sm min-h-[100px]"
+                placeholder="Write your feedback..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+              />
+
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setShowReviewModal(false)}
+                  className="flex-1 py-4 text-gray-500 font-bold hover:bg-gray-50 rounded-2xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={submitReview}
+                  className="flex-1 bg-gray-900 text-white py-4 rounded-2xl font-bold hover:bg-black transition-all"
+                >
+                  Submit
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="space-y-4">
         <h2 className="text-xl font-bold text-gray-900">My Listings</h2>
