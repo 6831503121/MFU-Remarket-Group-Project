@@ -54,52 +54,63 @@ const Navbar = ({
     </div>
     
     <div className="flex justify-between w-full md:w-auto md:gap-8">
-      <button onClick={() => onNavigate('home')} className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 transition-colors">
-        <Home size={24} />
-        <span className="text-[10px] md:hidden">Home</span>
+      <button onClick={() => onNavigate('home')} className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-red-600 transition-colors min-w-[50px]">
+        <Home size={22} />
+        <span className="text-[10px] font-medium">Home</span>
       </button>
       
       {currentUser && (
         <>
-          <button onClick={() => onNavigate('post')} className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 transition-colors">
-            <Plus size={24} />
-            <span className="text-[10px] md:hidden">Sell</span>
+          <button onClick={() => onNavigate('wishlist')} className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-red-600 transition-colors relative min-w-[50px]">
+            <Heart size={22} />
+            {currentUser.wishlist.length > 0 && (
+              <span className="absolute top-0 right-1 bg-red-500 text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                {currentUser.wishlist.length}
+              </span>
+            )}
+            <span className="text-[10px] font-medium">Wishlist</span>
+          </button>
+
+          <button onClick={() => onNavigate('post')} className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-red-600 transition-colors min-w-[50px]">
+            <Plus size={22} />
+            <span className="text-[10px] font-medium">Sell</span>
           </button>
           
-          <button onClick={() => onNavigate('chats')} className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 transition-colors relative">
-            <MessageCircle size={24} />
+          <button onClick={() => onNavigate('chats')} className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-red-600 transition-colors relative min-w-[50px]">
+            <MessageCircle size={22} />
             {notificationsCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+              <span className="absolute top-0 right-1 bg-red-500 text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center">
                 {notificationsCount}
               </span>
             )}
-            <span className="text-[10px] md:hidden">Chat</span>
+            <span className="text-[10px] font-medium">Chat</span>
           </button>
 
-          <button onClick={() => onNavigate('cart')} className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 transition-colors relative">
-            <ShoppingCart size={24} />
+          <button onClick={() => onNavigate('cart')} className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-red-600 transition-colors relative min-w-[50px]">
+            <ShoppingCart size={22} />
             {currentUser.cart.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+              <span className="absolute top-0 right-1 bg-red-600 text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center">
                 {currentUser.cart.length}
               </span>
             )}
-            <span className="text-[10px] md:hidden">Cart</span>
+            <span className="text-[10px] font-medium">Cart</span>
           </button>
           
-          <button onClick={() => onNavigate('profile')} className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 transition-colors">
-            <UserIcon size={24} />
-            <span className="text-[10px] md:hidden">Profile</span>
+          <button onClick={() => onNavigate('profile')} className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-red-600 transition-colors min-w-[50px]">
+            <UserIcon size={22} />
+            <span className="text-[10px] font-medium">Profile</span>
           </button>
 
           {currentUser.role === 'admin' && (
-            <button onClick={() => onNavigate('admin')} className="flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 transition-colors">
-              <Shield size={24} />
-              <span className="text-[10px] md:hidden">Admin</span>
+            <button onClick={() => onNavigate('admin')} className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-red-600 transition-colors min-w-[50px]">
+              <Shield size={22} />
+              <span className="text-[10px] font-medium">Admin</span>
             </button>
           )}
 
-          <button onClick={onLogout} className="hidden md:flex flex-col items-center gap-1 text-gray-500 hover:text-red-600 transition-colors">
-            <LogOut size={24} />
+          <button onClick={onLogout} className="hidden md:flex flex-col items-center gap-0.5 text-gray-500 hover:text-red-600 transition-colors min-w-[50px]">
+            <LogOut size={22} />
+            <span className="text-[10px] font-medium">Logout</span>
           </button>
         </>
       )}
@@ -469,6 +480,15 @@ export default function App() {
               setUsers(users.map(u => u.id === updated.id ? updated : u)); 
             }}
             onSelectItem={(id: string) => { setSelectedItemId(id); setPage('details'); }}
+          />
+        );
+      case 'wishlist':
+        return (
+          <WishlistScreen 
+            wishlistItems={items.filter(i => currentUser?.wishlist.includes(i.id))}
+            onRemove={handleToggleWishlist}
+            onSelectItem={(id: string) => { setSelectedItemId(id); setPage('details'); }}
+            onBack={() => setPage('home')}
           />
         );
       case 'cart':
@@ -1326,6 +1346,65 @@ const ProfileScreen = ({ user, items, boughtItems, onUpdateUser, onSelectItem }:
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+// --- Wishlist Screen ---
+
+const WishlistScreen = ({ wishlistItems, onRemove, onSelectItem, onBack }: any) => {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <ChevronLeft size={24} />
+        </button>
+        <h1 className="text-2xl font-bold text-gray-900">My Wishlist</h1>
+      </div>
+
+      {wishlistItems.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {wishlistItems.map((item: Item) => (
+            <motion.div 
+              layout
+              key={item.id}
+              onClick={() => onSelectItem(item.id)}
+              className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group"
+            >
+              <div className="aspect-square relative overflow-hidden">
+                <img 
+                  src={item.images[0]} 
+                  alt={item.title} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  referrerPolicy="no-referrer"
+                />
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onRemove(item.id); }}
+                  className="absolute top-2 right-2 p-2 rounded-full shadow-sm bg-red-500 text-white"
+                >
+                  <Heart size={16} fill="currentColor" />
+                </button>
+              </div>
+              <div className="p-3">
+                <h3 className="font-bold text-gray-900 truncate mb-1">{item.title}</h3>
+                <p className="text-red-600 font-bold">{formatPrice(item.price)}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <Heart size={48} className="mb-4 opacity-20" />
+          <p className="text-lg font-medium">Your wishlist is empty</p>
+          <p className="text-sm">Save items you like to see them here later</p>
+          <button 
+            onClick={onBack}
+            className="mt-6 px-6 py-2 bg-red-600 text-white rounded-full font-medium hover:bg-red-700 transition-colors"
+          >
+            Go Shopping
+          </button>
+        </div>
+      )}
     </div>
   );
 };
