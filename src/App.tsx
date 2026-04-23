@@ -879,29 +879,29 @@ const ItemDetailsScreen = ({
   const avgRating = seller?.reviews?.length ? (totalRating / seller.reviews.length).toFixed(1) : '0.0';
 
   return (
-    <div className="space-y-6 flex flex-col">
+    <div className="max-w-6xl mx-auto py-8 px-4">
       {showConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl"
+            className="bg-white rounded-[40px] p-8 max-w-sm w-full shadow-2xl text-center"
           >
-            <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-4">
-              <ShoppingCart size={24} />
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-6 mx-auto">
+              <ShoppingCart size={32} />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Confirm Order</h2>
-            <p className="text-gray-600 mb-6">Are you sure you want to buy <span className="font-bold text-gray-900">"{item.title}"</span> for <span className="font-bold text-red-600">{formatPrice(item.price)}</span>?</p>
-            <div className="flex gap-3">
+            <h2 className="text-2xl font-black text-gray-900 mb-2 uppercase tracking-tight">Confirm Order</h2>
+            <p className="text-gray-600 mb-8 font-medium">Are you ready to purchase <span className="font-black text-gray-900">"{item.title}"</span> for <span className="font-black text-red-600">{formatPrice(item.price)}</span>?</p>
+            <div className="flex gap-4">
               <button 
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 py-3 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-all"
+                className="flex-1 py-4 rounded-2xl font-black text-gray-400 bg-gray-100 hover:bg-gray-200 transition-all uppercase tracking-widest text-xs"
               >
                 Cancel
               </button>
               <button 
                 onClick={() => { onBuyNow(item.id); setShowConfirm(false); }}
-                className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all"
+                className="flex-1 py-4 rounded-2xl font-black text-white bg-red-600 hover:bg-red-700 transition-all uppercase tracking-widest text-xs shadow-lg shadow-red-100"
               >
                 Confirm
               </button>
@@ -910,191 +910,179 @@ const ItemDetailsScreen = ({
         </div>
       )}
 
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition-colors mb-4">
-        <ChevronLeft size={20} />
-        <span className="font-medium">Back to Marketplace</span>
-      </button>
+      <div className="grid md:grid-cols-2 gap-12 items-start">
+        {/* Left Column: Image Card */}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="relative group bg-white rounded-[60px] overflow-hidden shadow-2xl shadow-gray-200/50"
+        >
+          <img 
+            src={item.images[0]} 
+            alt={item.title} 
+            className="w-full aspect-[4/5] object-cover"
+            referrerPolicy="no-referrer"
+          />
+          <button 
+            onClick={(e) => { e.stopPropagation(); onToggleWishlist(item.id); }}
+            className={`absolute top-8 right-8 w-14 h-14 rounded-2xl shadow-xl backdrop-blur-md flex items-center justify-center transition-all ${isWishlisted ? 'bg-white text-red-600' : 'bg-white/80 text-gray-400 hover:bg-white hover:text-red-600'}`}
+          >
+            <Heart size={24} fill={isWishlisted ? 'currentColor' : 'none'} strokeWidth={2.5} />
+          </button>
+          {item.status === 'sold' && (
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
+              <span className="bg-white text-black px-10 py-4 rounded-3xl font-black text-2xl uppercase tracking-[0.2em] shadow-2xl">Sold</span>
+            </div>
+          )}
+        </motion.div>
 
-      <div className="bg-white rounded-[40px] overflow-hidden shadow-sm border border-gray-100 p-6 md:p-10">
-        <div className="grid md:grid-cols-2 gap-10">
+        {/* Right Column: Content */}
+        <div className="space-y-10 py-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={onBack} 
+              className="w-10 h-10 rounded-full border border-gray-100 bg-white flex items-center justify-center text-gray-400 hover:text-red-600 hover:border-red-100 transition-all shadow-sm"
+            >
+              <ChevronLeft size={20} strokeWidth={3} />
+            </button>
+            <span className="text-sm font-black text-gray-400 uppercase tracking-widest">Back to Marketplace</span>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <span className="bg-red-50 text-red-600 px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em]">
+                {item.category}
+              </span>
+              <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] ${item.stock > 0 ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                {item.stock} in stock
+              </span>
+            </div>
+            
+            <h1 className="text-6xl font-black text-gray-900 tracking-tight leading-[1.1]">
+              {item.title}
+            </h1>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-5xl font-black text-red-600 tracking-tight">฿{item.price}</span>
+            </div>
+          </div>
+
+          {/* Seller Card (Mockup Style) */}
+          <div className="bg-white rounded-[40px] p-8 shadow-xl shadow-gray-100 border border-gray-50 flex items-center gap-6">
+            <div className="w-16 h-16 bg-red-50 rounded-[28px] flex items-center justify-center text-red-600 text-2xl font-black ring-8 ring-red-50/30">
+              {item.sellerName[0]}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-1">
+                <h3 className="font-black text-xl text-gray-900 leading-none">{item.sellerName}</h3>
+                <div className="flex items-center gap-1 bg-red-50 text-red-600 px-2 py-1 rounded-full text-[10px] font-black">
+                  <Heart size={10} fill="currentColor" />
+                  {avgRating} <span className="opacity-50 ml-0.5">({seller?.reviews?.length || 0})</span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">MFU Student • Verified Seller</p>
+            </div>
+            {!isOwner && (
+              <button 
+                onClick={onStartChat}
+                className="w-14 h-14 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-all border border-gray-100 shadow-inner"
+              >
+                <MessageCircle size={24} strokeWidth={2.5} />
+              </button>
+            )}
+          </div>
+
           <div className="space-y-4">
-            <div className="aspect-square relative rounded-[32px] overflow-hidden bg-gray-50 ring-1 ring-gray-100">
-              <img 
-                src={item.images[0]} 
-                alt={item.title} 
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-              {item.status === 'sold' && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <span className="bg-white text-black px-6 py-2 rounded-xl font-bold text-xl uppercase tracking-widest">Sold</span>
+            <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">About this item</h3>
+            <p className="text-gray-500 font-medium leading-relaxed text-lg">
+              {item.description}
+            </p>
+          </div>
+
+          {/* Reviews Section */}
+          <div className="space-y-6 pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Seller Reviews</h3>
+              <div className="flex items-center gap-1 bg-red-50 text-red-600 px-3 py-1.5 rounded-full text-xs font-black">
+                <Heart size={12} fill="currentColor" />
+                {avgRating} <span className="opacity-50 ml-1">({seller?.reviews?.length || 0})</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {seller?.reviews && seller.reviews.length > 0 ? (
+                seller.reviews.slice(0, 3).map((review: any) => (
+                  <div key={review.id} className="bg-gray-50/50 rounded-[32px] p-6 border border-gray-100/50">
+                    <div className="flex justify-between items-start mb-3">
+                      <p className="font-black text-gray-900">{review.reviewerName}</p>
+                      <div className="flex text-red-500 gap-0.5">
+                        {[...Array(5)].map((_, i) => (
+                          <Heart key={i} size={12} fill={i < review.rating ? 'currentColor' : 'none'} />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-gray-500 font-medium italic text-sm leading-relaxed">"{review.comment}"</p>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-10 text-gray-300 font-black uppercase tracking-widest text-xs bg-gray-50 rounded-[32px]">
+                  No feedback captured yet
                 </div>
               )}
             </div>
           </div>
 
-          <div className="space-y-8 flex flex-col justify-center">
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <span className="bg-red-50 text-red-600 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">{item.category}</span>
-                <div className="flex items-center gap-1.5 text-yellow-500 bg-yellow-50 px-3 py-1.5 rounded-full">
-                  <Heart size={14} fill="currentColor" />
-                  <span className="text-sm font-black">{avgRating}</span>
-                </div>
-              </div>
-              <h1 className="text-4xl font-black text-gray-900 mb-3 leading-tight">{item.title}</h1>
-              <div className="flex items-baseline gap-2 mb-6">
-                <p className="text-4xl font-black text-red-600">{formatPrice(item.price)}</p>
-                <p className="text-sm text-gray-400 font-medium tracking-tight">/ negotiable</p>
-              </div>
-              <div className="h-0.5 w-12 bg-gray-100 rounded-full" />
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Description</h3>
-              <p className="text-gray-600 leading-relaxed text-lg">{item.description}</p>
-            </div>
-
-            <div className="bg-gray-50/50 rounded-[32px] p-6 border border-gray-100">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg shadow-red-100">
-                  {item.sellerName[0]}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-black text-gray-900 text-lg uppercase tracking-tight">{item.sellerName}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-black uppercase">Verified ID</span>
-                    <span className="text-xs text-gray-400 font-medium">{seller?.reviews?.length || 0} Successful Deals</span>
-                  </div>
-                </div>
-                {!isOwner && (
-                  <button 
-                    onClick={onStartChat}
-                    className="bg-white text-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 transition-all"
-                  >
-                    <MessageCircle size={24} />
-                  </button>
-                )}
-              </div>
-            </div>
-
+          {/* Action Buttons */}
+          <div className="flex gap-4 pt-6">
             {!isOwner && (
-              <div className="flex gap-4">
-                <button 
-                  onClick={() => onToggleWishlist(item.id)}
-                  className={`p-5 rounded-2xl border-2 transition-all flex items-center justify-center ${isWishlisted ? 'bg-red-50 text-red-600 border-red-600' : 'bg-white text-gray-400 border-gray-100 hover:border-red-600 hover:text-red-600'}`}
-                >
-                  <Heart size={24} fill={isWishlisted ? 'currentColor' : 'none'} />
-                </button>
-                <button 
-                  onClick={() => onAddToCart(item.id)}
-                  className="flex-1 bg-gray-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200"
-                  disabled={item.status === 'sold' || item.stock === 0}
-                >
-                  Add to Cart
-                </button>
+              <>
                 <button 
                   onClick={() => setShowConfirm(true)}
-                  className="flex-1 bg-red-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-100"
                   disabled={item.status === 'sold' || item.stock === 0}
+                  className="flex-[2] bg-red-600 text-white h-20 rounded-[32px] font-black text-xl uppercase tracking-widest hover:bg-red-700 transition-all shadow-2xl shadow-red-100 disabled:opacity-50"
                 >
                   Buy Now
                 </button>
-              </div>
+                <button 
+                  onClick={() => onAddToCart(item.id)}
+                  disabled={item.status === 'sold' || item.stock === 0}
+                  className="flex-1 bg-white border-4 border-red-600 text-red-600 h-20 rounded-[32px] flex items-center justify-center hover:bg-red-50 transition-all disabled:opacity-50"
+                >
+                  <ShoppingCart size={28} strokeWidth={3} />
+                </button>
+              </>
             )}
-
+            
             {(isOwner || isAdmin) && (
-              <div className="flex gap-4">
+              <div className="flex-1 flex gap-4">
                 {item.status !== 'sold' && (
                   <button 
                     onClick={() => onMarkSold(item.id)}
-                    className="flex-1 py-5 bg-green-500 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-green-600 transition-all"
+                    className="flex-1 bg-green-500 text-white h-20 rounded-[32px] font-black uppercase tracking-widest hover:bg-green-600 transition-all shadow-xl shadow-green-100"
                   >
-                    Mark as Sold
+                    Mark Sold
                   </button>
                 )}
                 <button 
                   onClick={() => onDelete(item.id)}
-                  className="flex-1 py-5 bg-gray-100 text-red-600 rounded-2xl font-black uppercase tracking-widest hover:bg-red-50 transition-all"
+                  className="flex-1 bg-gray-100 text-red-600 h-20 rounded-[32px] font-black uppercase tracking-widest hover:bg-red-50 transition-all"
                 >
-                  Delete Item
+                  Delete
                 </button>
               </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Reviews Section */}
-      <div className="mt-12 space-y-8">
-        <div className="flex items-end justify-between px-2">
-          <div>
-            <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Seller Feedback</h2>
-            <div className="flex items-center gap-3 mt-2">
-              <div className="flex text-yellow-500">
-                {[...Array(5)].map((_, i) => (
-                  <Heart key={i} size={18} fill={i < Math.round(Number(avgRating)) ? 'currentColor' : 'none'} />
-                ))}
-              </div>
-              <span className="text-xl font-black text-gray-900">{avgRating}</span>
-              <span className="text-sm font-medium text-gray-400">based on {seller?.reviews?.length || 0} experiences</span>
-            </div>
-          </div>
-        </div>
-
-        {seller?.reviews && seller.reviews.length > 0 ? (
-          <div className="grid md:grid-cols-2 gap-6 pb-12">
-            {seller.reviews.map((review: any) => (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                key={review.id} 
-                className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group hover:border-red-200 transition-all"
-              >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-[100px] -mr-12 -mt-12 group-hover:bg-red-100 transition-colors" />
-                <div className="relative">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center text-white text-xs font-black">
-                        {review.reviewerName[0]}
-                      </div>
-                      <div>
-                        <p className="font-black text-gray-900 uppercase text-xs tracking-wider">{review.reviewerName}</p>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{new Date(review.createdAt).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                    <div className="flex text-yellow-500">
-                      {[...Array(5)].map((_, i) => (
-                        <Heart key={i} size={12} fill={i < review.rating ? 'currentColor' : 'none'} />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-gray-600 text-lg leading-relaxed font-medium italic">"{review.comment}"</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white p-20 rounded-[48px] border border-dashed border-gray-200 text-center text-gray-300 mb-12">
-            <Heart size={64} className="mx-auto mb-6 opacity-30" strokeWidth={1} />
-            <p className="text-xl font-black uppercase tracking-widest">No Feedback Captured Yet</p>
-            <p className="text-sm font-medium mt-2">Become the first to trust this seller</p>
-          </div>
-        )}
-      </div>
-
-      <div className="p-8 bg-blue-600 rounded-[40px] shadow-2xl shadow-blue-100 relative overflow-hidden mb-12">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full -mr-16 -mt-16" />
-        <div className="relative flex gap-6 items-center">
-          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-            <Shield className="text-white" size={32} />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-white font-black text-xl uppercase tracking-tight mb-2">Safe Trading Protocol</h3>
-            <p className="text-blue-100 text-sm leading-relaxed font-medium">
-              Always finalize deals at <span className="text-white font-bold underline">M-Square</span> or <span className="text-white font-bold underline">The Learning Center</span>. Never share bank details or pay before inspecting the physical item.
-            </p>
-          </div>
+          {/* Report Button */}
+          {!isOwner && (
+            <button 
+              onClick={() => alert('Reported')}
+              className="w-full pt-4 flex items-center justify-center gap-2 text-gray-300 hover:text-red-400 font-bold text-xs uppercase tracking-widest transition-colors"
+            >
+              <AlertTriangle size={14} />
+              Report this listing
+            </button>
+          )}
         </div>
       </div>
     </div>
