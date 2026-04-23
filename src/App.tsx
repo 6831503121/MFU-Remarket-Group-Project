@@ -25,7 +25,7 @@ import {
   Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User, Item, Category, Chat, Message, Report, Notification } from './types';
+import { User, Item, Category, Chat, Message, Report, Notification, Review } from './types';
 import { INITIAL_USERS, INITIAL_ITEMS, CATEGORIES } from './mockData';
 import { 
   isValidMfuEmail, 
@@ -443,15 +443,18 @@ export default function App() {
             currentUser={currentUser}
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
+            users={users}
           />
         );
       case 'details':
         const item = items.find(i => i.id === selectedItemId);
         if (!item) return <div>Item not found</div>;
+        const seller = users.find(u => u.id === item.sellerId);
         return (
           <ItemDetailsScreen 
             item={item} 
             currentUser={currentUser}
+            seller={seller}
             onBack={() => setPage('home')}
             onStartChat={() => startChat(item.id, item.sellerId)}
             onToggleWishlist={handleToggleWishlist}
@@ -728,7 +731,9 @@ const HomeScreen = ({
   setSortBy,
   onSelectItem,
   currentUser,
-  onToggleWishlist
+  onToggleWishlist,
+  onAddToCart,
+  users
 }: any) => {
   return (
     <div className="space-y-6">
@@ -781,55 +786,66 @@ const HomeScreen = ({
 
       {items.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {items.map((item: Item) => (
-            <motion.div 
-              layout
-              key={item.id}
-              onClick={() => onSelectItem(item.id)}
-              className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group"
-            >
-              <div className="aspect-square relative overflow-hidden">
-                <img 
-                  src={item.images[0]} 
-                  alt={item.title} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  referrerPolicy="no-referrer"
-                />
-                {item.status === 'sold' && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <span className="bg-white text-black px-3 py-1 rounded-lg font-bold text-xs uppercase tracking-wider">Sold</span>
-                  </div>
-                )}
-                
-                <div className="absolute top-2 right-2 flex flex-col gap-2">
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onToggleWishlist(item.id); }}
-                    className={`p-2 rounded-full shadow-sm transition-all ${currentUser?.wishlist.includes(item.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-600 hover:bg-white'}`}
-                  >
-                    <Heart size={16} fill={currentUser?.wishlist.includes(item.id) ? 'currentColor' : 'none'} />
-                  </button>
+          {items.map((item: Item) => {
+            const itemSeller = users.find((u:User) => u.id === item.sellerId);
+            const totalRating = itemSeller?.reviews?.reduce((s:number, r:any) => s + r.rating, 0) || 0;
+            const avgRating = itemSeller?.reviews?.length ? (totalRating / itemSeller.reviews.length).toFixed(1) : '0.0';
+
+            return (
+              <motion.div 
+                layout
+                key={item.id}
+                onClick={() => onSelectItem(item.id)}
+                className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group"
+              >
+                <div className="aspect-square relative overflow-hidden">
+                  <img 
+                    src={item.images[0]} 
+                    alt={item.title} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    referrerPolicy="no-referrer"
+                  />
+                  {item.status === 'sold' && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <span className="bg-white text-black px-3 py-1 rounded-lg font-bold text-xs uppercase tracking-wider">Sold</span>
+                    </div>
+                  )}
                   
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onAddToCart(item.id); }}
-                    className={`p-2 rounded-full shadow-sm transition-all ${currentUser?.cart.includes(item.id) ? 'bg-red-600 text-white' : 'bg-white/80 text-gray-600 hover:bg-white'}`}
-                    disabled={item.status === 'sold' || item.stock === 0}
-                  >
-                    <ShoppingCart size={16} />
-                  </button>
+                  <div className="absolute top-2 right-2 flex flex-col gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onToggleWishlist(item.id); }}
+                      className={`p-2 rounded-full shadow-sm transition-all ${currentUser?.wishlist.includes(item.id) ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-600 hover:bg-white'}`}
+                    >
+                      <Heart size={16} fill={currentUser?.wishlist.includes(item.id) ? 'currentColor' : 'none'} />
+                    </button>
+                    
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onAddToCart(item.id); }}
+                      className={`p-2 rounded-full shadow-sm transition-all ${currentUser?.cart.includes(item.id) ? 'bg-red-600 text-white' : 'bg-white/80 text-gray-600 hover:bg-white'}`}
+                      disabled={item.status === 'sold' || item.stock === 0}
+                    >
+                      <ShoppingCart size={16} />
+                    </button>
+                  </div>
+
+                  <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">
+                    <Heart size={10} fill="currentColor" className="text-yellow-500" />
+                    <span className="text-[10px] font-bold text-gray-900">{avgRating}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="p-3">
-                <div className="flex justify-between items-start mb-1">
-                  <p className="text-xs text-gray-400 uppercase font-bold tracking-tighter">{item.category}</p>
-                  <p className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${item.stock > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                    {item.stock > 0 ? `${item.stock} in stock` : 'Out of stock'}
-                  </p>
+                <div className="p-3">
+                  <div className="flex justify-between items-start mb-1">
+                    <p className="text-xs text-gray-400 uppercase font-bold tracking-tighter">{item.category}</p>
+                    <p className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${item.stock > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                      {item.stock > 0 ? `${item.stock} in stock` : 'Out of stock'}
+                    </p>
+                  </div>
+                  <h3 className="font-bold text-gray-900 truncate mb-1">{item.title}</h3>
+                  <p className="text-red-600 font-bold">{formatPrice(item.price)}</p>
                 </div>
-                <h3 className="font-bold text-gray-900 truncate mb-1">{item.title}</h3>
-                <p className="text-red-600 font-bold">{formatPrice(item.price)}</p>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
@@ -842,13 +858,28 @@ const HomeScreen = ({
   );
 };
 
-const ItemDetailsScreen = ({ item, currentUser, onBack, onStartChat, onToggleWishlist, onAddToCart, onBuyNow, isWishlisted, onDelete, onMarkSold }: any) => {
+const ItemDetailsScreen = ({ 
+  item, 
+  currentUser, 
+  seller, 
+  onBack, 
+  onStartChat, 
+  onToggleWishlist, 
+  onAddToCart, 
+  onBuyNow, 
+  isWishlisted, 
+  onDelete, 
+  onMarkSold 
+}: any) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const isOwner = currentUser?.id === item.sellerId;
   const isAdmin = currentUser?.role === 'admin';
 
+  const totalRating = seller?.reviews?.reduce((s:number, r:any) => s + r.rating, 0) || 0;
+  const avgRating = seller?.reviews?.length ? (totalRating / seller.reviews.length).toFixed(1) : '0.0';
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex flex-col">
       {showConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <motion.div 
@@ -879,140 +910,192 @@ const ItemDetailsScreen = ({ item, currentUser, onBack, onStartChat, onToggleWis
         </div>
       )}
 
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition-colors">
-        <X size={20} />
+      <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition-colors mb-4">
+        <ChevronLeft size={20} />
         <span className="font-medium">Back to Marketplace</span>
       </button>
 
-      <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
-        <div className="aspect-video relative">
-          <img 
-            src={item.images[0]} 
-            alt={item.title} 
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-          {item.status === 'sold' && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <span className="bg-white text-black px-6 py-2 rounded-xl font-bold text-xl uppercase tracking-widest">Sold</span>
+      <div className="bg-white rounded-[40px] overflow-hidden shadow-sm border border-gray-100 p-6 md:p-10">
+        <div className="grid md:grid-cols-2 gap-10">
+          <div className="space-y-4">
+            <div className="aspect-square relative rounded-[32px] overflow-hidden bg-gray-50 ring-1 ring-gray-100">
+              <img 
+                src={item.images[0]} 
+                alt={item.title} 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+              {item.status === 'sold' && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <span className="bg-white text-black px-6 py-2 rounded-xl font-bold text-xl uppercase tracking-widest">Sold</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="p-6 space-y-4">
-          <div className="flex justify-between items-start">
+          <div className="space-y-8 flex flex-col justify-center">
             <div>
-              <p className="text-sm text-red-600 font-bold uppercase tracking-wider mb-1">{item.category}</p>
-              <h1 className="text-2xl font-bold text-gray-900">{item.title}</h1>
-              <p className={`text-xs font-bold mt-1 ${item.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {item.stock > 0 ? `Available Stock: ${item.stock}` : 'Out of Stock'}
-              </p>
+              <div className="flex justify-between items-center mb-4">
+                <span className="bg-red-50 text-red-600 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest">{item.category}</span>
+                <div className="flex items-center gap-1.5 text-yellow-500 bg-yellow-50 px-3 py-1.5 rounded-full">
+                  <Heart size={14} fill="currentColor" />
+                  <span className="text-sm font-black">{avgRating}</span>
+                </div>
+              </div>
+              <h1 className="text-4xl font-black text-gray-900 mb-3 leading-tight">{item.title}</h1>
+              <div className="flex items-baseline gap-2 mb-6">
+                <p className="text-4xl font-black text-red-600">{formatPrice(item.price)}</p>
+                <p className="text-sm text-gray-400 font-medium tracking-tight">/ negotiable</p>
+              </div>
+              <div className="h-0.5 w-12 bg-gray-100 rounded-full" />
             </div>
-            <p className="text-2xl font-bold text-red-600">{formatPrice(item.price)}</p>
-          </div>
 
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold">
-                {item.sellerName[0]}
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">{item.sellerName}</p>
-                <p className="text-xs text-gray-500">Seller • MFU Student</p>
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Description</h3>
+              <p className="text-gray-600 leading-relaxed text-lg">{item.description}</p>
+            </div>
+
+            <div className="bg-gray-50/50 rounded-[32px] p-6 border border-gray-100">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center text-white text-xl font-black shadow-lg shadow-red-100">
+                  {item.sellerName[0]}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-black text-gray-900 text-lg uppercase tracking-tight">{item.sellerName}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-black uppercase">Verified ID</span>
+                    <span className="text-xs text-gray-400 font-medium">{seller?.reviews?.length || 0} Successful Deals</span>
+                  </div>
+                </div>
+                {!isOwner && (
+                  <button 
+                    onClick={onStartChat}
+                    className="bg-white text-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 transition-all"
+                  >
+                    <MessageCircle size={24} />
+                  </button>
+                )}
               </div>
             </div>
+
             {!isOwner && (
-              <button 
-                onClick={onStartChat}
-                disabled={item.status === 'sold'}
-                className="px-4 py-2 bg-white border border-red-600 text-red-600 rounded-xl text-xs font-bold hover:bg-red-50 transition-all flex items-center gap-1 disabled:opacity-50"
-              >
-                <MessageCircle size={14} />
-                Chat
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="font-bold text-gray-900">Description</h3>
-            <p className="text-gray-600 leading-relaxed">{item.description}</p>
-          </div>
-
-          <div className="pt-4 flex gap-3">
-            {isOwner ? (
-              <>
-                <button 
-                  onClick={() => onMarkSold(item.id)}
-                  disabled={item.status === 'sold' || item.stock === 0}
-                  className="flex-1 bg-green-600 text-white py-4 rounded-2xl font-bold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Mark as Sold
-                </button>
-                <button 
-                  onClick={() => onDelete(item.id)}
-                  className="p-4 bg-gray-100 text-gray-600 rounded-2xl hover:bg-red-50 hover:text-red-600 transition-all"
-                >
-                  <Trash2 size={24} />
-                </button>
-              </>
-            ) : (
-              <>
-                <button 
-                  onClick={() => setShowConfirm(true)}
-                  disabled={item.status === 'sold' || item.stock === 0}
-                  className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Buy Now
-                </button>
-                <button 
-                  onClick={() => onAddToCart(item.id)}
-                  disabled={item.status === 'sold' || item.stock === 0}
-                  className="flex-1 bg-white border-2 border-red-600 text-red-600 py-4 rounded-2xl font-bold hover:bg-red-50 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ShoppingCart size={20} />
-                  Add to Cart
-                </button>
+              <div className="flex gap-4">
                 <button 
                   onClick={() => onToggleWishlist(item.id)}
-                  className={`p-4 rounded-2xl transition-all ${isWishlisted ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  className={`p-5 rounded-2xl border-2 transition-all flex items-center justify-center ${isWishlisted ? 'bg-red-50 text-red-600 border-red-600' : 'bg-white text-gray-400 border-gray-100 hover:border-red-600 hover:text-red-600'}`}
                 >
                   <Heart size={24} fill={isWishlisted ? 'currentColor' : 'none'} />
                 </button>
-              </>
+                <button 
+                  onClick={() => onAddToCart(item.id)}
+                  className="flex-1 bg-gray-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-200"
+                  disabled={item.status === 'sold' || item.stock === 0}
+                >
+                  Add to Cart
+                </button>
+                <button 
+                  onClick={() => setShowConfirm(true)}
+                  className="flex-1 bg-red-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-100"
+                  disabled={item.status === 'sold' || item.stock === 0}
+                >
+                  Buy Now
+                </button>
+              </div>
+            )}
+
+            {(isOwner || isAdmin) && (
+              <div className="flex gap-4">
+                {item.status !== 'sold' && (
+                  <button 
+                    onClick={() => onMarkSold(item.id)}
+                    className="flex-1 py-5 bg-green-500 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-green-600 transition-all"
+                  >
+                    Mark as Sold
+                  </button>
+                )}
+                <button 
+                  onClick={() => onDelete(item.id)}
+                  className="flex-1 py-5 bg-gray-100 text-red-600 rounded-2xl font-black uppercase tracking-widest hover:bg-red-50 transition-all"
+                >
+                  Delete Item
+                </button>
+              </div>
             )}
           </div>
-          
-          {isAdmin && !isOwner && (
-            <div className="mt-4 p-4 border-2 border-dashed border-red-200 rounded-2xl bg-red-50">
-              <p className="text-red-600 font-bold text-sm mb-2 flex items-center gap-2">
-                <Shield size={16} /> Admin Controls
-              </p>
-              <button 
-                onClick={() => onDelete(item.id)}
-                className="w-full bg-red-600 text-white py-2 rounded-xl text-sm font-bold"
-              >
-                Remove Listing
-              </button>
-            </div>
-          )}
-
-          {!isOwner && !isAdmin && (
-            <button 
-              onClick={() => alert('Item reported to admin for review.')}
-              className="w-full text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center gap-1 mt-4"
-            >
-              <AlertTriangle size={12} />
-              Report this listing
-            </button>
-          )}
         </div>
       </div>
-      
-      <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3">
-        <AlertTriangle className="text-blue-500 shrink-0" size={20} />
-        <p className="text-xs text-blue-700">
-          <strong>Safety Tip:</strong> Always meet on campus (e.g., M-Square or Library) and verify the item before paying. Never send money in advance.
-        </p>
+
+      {/* Reviews Section */}
+      <div className="mt-12 space-y-8">
+        <div className="flex items-end justify-between px-2">
+          <div>
+            <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Seller Feedback</h2>
+            <div className="flex items-center gap-3 mt-2">
+              <div className="flex text-yellow-500">
+                {[...Array(5)].map((_, i) => (
+                  <Heart key={i} size={18} fill={i < Math.round(Number(avgRating)) ? 'currentColor' : 'none'} />
+                ))}
+              </div>
+              <span className="text-xl font-black text-gray-900">{avgRating}</span>
+              <span className="text-sm font-medium text-gray-400">based on {seller?.reviews?.length || 0} experiences</span>
+            </div>
+          </div>
+        </div>
+
+        {seller?.reviews && seller.reviews.length > 0 ? (
+          <div className="grid md:grid-cols-2 gap-6 pb-12">
+            {seller.reviews.map((review: any) => (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                key={review.id} 
+                className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group hover:border-red-200 transition-all"
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-[100px] -mr-12 -mt-12 group-hover:bg-red-100 transition-colors" />
+                <div className="relative">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center text-white text-xs font-black">
+                        {review.reviewerName[0]}
+                      </div>
+                      <div>
+                        <p className="font-black text-gray-900 uppercase text-xs tracking-wider">{review.reviewerName}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{new Date(review.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex text-yellow-500">
+                      {[...Array(5)].map((_, i) => (
+                        <Heart key={i} size={12} fill={i < review.rating ? 'currentColor' : 'none'} />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-lg leading-relaxed font-medium italic">"{review.comment}"</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white p-20 rounded-[48px] border border-dashed border-gray-200 text-center text-gray-300 mb-12">
+            <Heart size={64} className="mx-auto mb-6 opacity-30" strokeWidth={1} />
+            <p className="text-xl font-black uppercase tracking-widest">No Feedback Captured Yet</p>
+            <p className="text-sm font-medium mt-2">Become the first to trust this seller</p>
+          </div>
+        )}
+      </div>
+
+      <div className="p-8 bg-blue-600 rounded-[40px] shadow-2xl shadow-blue-100 relative overflow-hidden mb-12">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full -mr-16 -mt-16" />
+        <div className="relative flex gap-6 items-center">
+          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+            <Shield className="text-white" size={32} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-white font-black text-xl uppercase tracking-tight mb-2">Safe Trading Protocol</h3>
+            <p className="text-blue-100 text-sm leading-relaxed font-medium">
+              Always finalize deals at <span className="text-white font-bold underline">M-Square</span> or <span className="text-white font-bold underline">The Learning Center</span>. Never share bank details or pay before inspecting the physical item.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
